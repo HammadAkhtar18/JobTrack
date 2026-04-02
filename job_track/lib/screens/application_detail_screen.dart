@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
+import 'package:job_track/screens/add_application_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ApplicationDetailScreen extends ConsumerWidget {
   const ApplicationDetailScreen({
@@ -23,7 +27,11 @@ class ApplicationDetailScreen extends ConsumerWidget {
         actions: [
           TextButton.icon(
             onPressed: () {
-              Navigator.of(context).pushNamed('/edit-application', arguments: application);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AddApplicationScreen(application: application),
+                ),
+              );
             },
             icon: const Icon(Icons.edit_rounded),
             label: const Text('Edit'),
@@ -77,6 +85,20 @@ class ApplicationDetailScreen extends ConsumerWidget {
         const SnackBar(content: Text('Follow-up date must be in the future.')),
       );
       return;
+    }
+
+    if (Platform.isAndroid) {
+      final status = await Permission.notification.request();
+      if (!status.isGranted) {
+        if (!context.mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification permission denied')),
+        );
+        return;
+      }
     }
 
     await _NotificationsService.instance.initialize();
