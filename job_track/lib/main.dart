@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:job_track/models/job_application.dart';
+import 'package:job_track/screens/add_application_screen.dart';
+import 'package:job_track/screens/applications_list_screen.dart';
+import 'package:job_track/screens/dashboard_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +26,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Welcome to Job Track'),
-        ),
-      ),
+      home: const DashboardScreen(),
+      routes: {
+        '/add-application': (context) => const AddApplicationScreen(),
+        '/applications': (context) => const ApplicationsListScreen(),
+      },
     );
   }
 }

@@ -98,16 +98,12 @@ class DashboardScreen extends ConsumerWidget {
                         PieChartData(
                           sectionsSpace: 2,
                           centerSpaceRadius: 44,
-                          sections: [
-                            _buildSection(appliedCount.toDouble(), Colors.blue, 'Applied'),
-                            _buildSection(
-                              interviewCount.toDouble(),
-                              Colors.orange,
-                              'Interviews',
-                            ),
-                            _buildSection(offerCount.toDouble(), Colors.green, 'Offers'),
-                            _buildSection(rejectedCount.toDouble(), Colors.red, 'Rejected'),
-                          ],
+                          sections: _buildStatusSections(
+                            appliedCount: appliedCount,
+                            interviewCount: interviewCount,
+                            offerCount: offerCount,
+                            rejectedCount: rejectedCount,
+                          ),
                         ),
                       ),
                     ),
@@ -162,14 +158,50 @@ class DashboardScreen extends ConsumerWidget {
     }).length;
   }
 
-  PieChartSectionData _buildSection(double value, Color color, String title) {
-    final hasValue = value > 0;
+  List<PieChartSectionData> _buildStatusSections({
+    required int appliedCount,
+    required int interviewCount,
+    required int offerCount,
+    required int rejectedCount,
+  }) {
+    final statusData = [
+      ('Applied', appliedCount, Colors.blue),
+      ('Interviews', interviewCount, Colors.orange),
+      ('Offers', offerCount, Colors.green),
+      ('Rejected', rejectedCount, Colors.red),
+    ].where((status) => status.$2 > 0).toList();
 
+    if (statusData.isEmpty) {
+      return [
+        PieChartSectionData(
+          color: Colors.grey,
+          value: 1,
+          radius: 60,
+          title: 'No data yet',
+          titleStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ];
+    }
+
+    return statusData
+        .map((status) => _buildSection(
+              status.$2.toDouble(),
+              status.$3,
+              status.$1,
+            ))
+        .toList();
+  }
+
+  PieChartSectionData _buildSection(double value, Color color, String title) {
     return PieChartSectionData(
-      color: hasValue ? color : color.withValues(alpha: 0.15),
-      value: hasValue ? value : 1,
+      color: color,
+      value: value,
       radius: 60,
-      title: hasValue ? '${value.toInt()}' : '',
+      title: '${value.toInt()}',
       titleStyle: const TextStyle(
         color: Colors.white,
         fontSize: 14,
