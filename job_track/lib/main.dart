@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:job_track/models/job_application.dart';
 
-void main() {
-  runApp(const JobTrackApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveFlutter.init();
+  Hive.registerAdapter(JobApplicationAdapter());
+  await Hive.openBox<JobApplication>('applications');
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class JobTrackApp extends StatelessWidget {
-  const JobTrackApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
