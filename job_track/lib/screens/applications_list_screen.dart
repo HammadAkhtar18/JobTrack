@@ -23,8 +23,12 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
   ];
 
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _pendingDeletionIds = <String>{};
+
+  List<JobApplication> _localApplications = <JobApplication>[];
   String _searchQuery = '';
   String _selectedFilter = 'All';
+  bool _initializedFromProvider = false;
 
   @override
   void dispose() {
@@ -34,11 +38,33 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final applications = ref.watch(applicationsProvider);
-    final normalizedFilter = _selectedFilter.toLowerCase();
+    final providerApplications = ref.watch(applicationsProvider);
 
-    final filteredApplications = applications.where((application) {
-      final normalizedStatus = application.status.trim().toLowerCase();
+    if (!_initializedFromProvider) {
+      _localApplications = List<JobApplication>.from(providerApplications);
+      _initializedFromProvider = true;
+    }
+
+    final providerVisibleApplications = providerApplications
+        .where((application) => !_pendingDeletionIds.contains(application.id))
+        .toList()
+      ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+
+    if (!_sameApplicationIds(_localApplications, providerVisibleApplications)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _localApplications = List<JobApplication>.from(providerVisibleApplications);
+        });
+      });
+    }
+
+    final normalizedFilter = _normalizeStatus(_selectedFilter);
+
+    final filteredApplications = _localApplications.where((application) {
+      final normalizedStatus = _normalizeStatus(application.status);
       final matchesFilter = normalizedFilter == 'all' || normalizedStatus == normalizedFilter;
       final normalizedQuery = _searchQuery.trim().toLowerCase();
       final matchesSearch = normalizedQuery.isEmpty ||
@@ -112,30 +138,55 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                           );
                         },
                         onDelete: () async {
-                          await ref
-                              .read(applicationsProvider.notifier)
-                              .deleteApplication(application.id);
-                          if (!context.mounted) {
-                            return;
-                          }
-
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Deleted ${application.companyName} - ${application.jobTitle}',
-                                ),
-                                action: SnackBarAction(
-                                  label: 'Undo',
-                                  onPressed: () {
-                                    ref
-                                        .read(applicationsProvider.notifier)
-                                        .addApplication(application);
-                                  },
-                                ),
-                              ),
+                          setState(() {
+                            _pendingDeletionIds.add(application.id);
+                            _localApplications.removeWhere(
+                              (localApplication) => localApplication.id == application.id,
                             );
+                          });
+
+                          try {
+                            await ref
+                                .read(applicationsProvider.notifier)
+                                .deleteApplication(application.id);
+
+                            if (!mounted) {
+                              return;
+                            }
+
+                            setState(() {
+                              _pendingDeletionIds.remove(application.id);
+                            });
+
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Deleted ${application.companyName} - ${application.jobTitle}',
+                                  ),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    onPressed: () {
+                                      ref
+                                          .read(applicationsProvider.notifier)
+                                          .addApplication(application);
+                                    },
+                                  ),
+                                ),
+                              );
+                          } catch (_) {
+                            if (!mounted) {
+                              return;
+                            }
+                            setState(() {
+                              _pendingDeletionIds.remove(application.id);
+                              _localApplications = [
+                                ..._localApplications,
+                                application,
+                              ]..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+                            });
+                          }
                         },
                       );
                     },
@@ -144,6 +195,33 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
         ],
       ),
     );
+  }
+
+  bool _sameApplicationIds(
+    List<JobApplication> first,
+    List<JobApplication> second,
+  ) {
+    if (first.length != second.length) {
+      return false;
+    }
+
+    for (var index = 0; index < first.length; index++) {
+      if (first[index].id != second[index].id) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  String _normalizeStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    return switch (normalized) {
+      'interviews' => 'interview',
+      'offers' => 'offer',
+      _ when normalized.endsWith('s') => normalized.substring(0, normalized.length - 1),
+      _ => normalized,
+    };
   }
 }
 
