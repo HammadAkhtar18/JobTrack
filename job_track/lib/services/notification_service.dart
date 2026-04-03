@@ -1,7 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService.instance;
+});
 
 class NotificationService {
   NotificationService._();
@@ -10,10 +15,15 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  bool _initialized = false;
   static const String _notificationIdMapKey = 'notification_id_map';
   static const String _nextNotificationIdKey = 'next_notification_id';
 
   Future<void> initialize() async {
+    if (_initialized) {
+      return;
+    }
+
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
@@ -26,6 +36,7 @@ class NotificationService {
 
     await _notifications.initialize(initSettings);
     await _requestPermissions();
+    _initialized = true;
   }
 
   Future<void> scheduleFollowUpReminder(JobApplication app) async {
