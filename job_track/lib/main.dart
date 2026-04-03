@@ -31,7 +31,9 @@ Future<void> main() async {
     () async {
       try {
         await HiveFlutter.init();
-        Hive.registerAdapter(JobApplicationAdapter());
+        if (!Hive.isAdapterRegistered(JobApplicationAdapter().typeId)) {
+          Hive.registerAdapter(JobApplicationAdapter());
+        }
         await Hive.openBox<JobApplication>('applications');
         await NotificationService.instance.initialize();
         _runApp(const MyApp());
