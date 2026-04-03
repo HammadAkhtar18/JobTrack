@@ -41,7 +41,23 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final providerApplications = ref.watch(applicationsProvider);
+    final applicationsAsync = ref.watch(applicationsProvider);
+
+    ref.listen<AsyncValue<List<JobApplication>>>(applicationsProvider, (previous, next) {
+      if (!mounted) {
+        return;
+      }
+
+      if (next.hasError && previous?.hasError != true) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Could not load applications. Please try again.')),
+          );
+      }
+    });
+
+    final providerApplications = applicationsAsync.valueOrNull ?? <JobApplication>[];
 
     if (!_initializedFromProvider) {
       _localApplications = List<JobApplication>.from(providerApplications);
@@ -196,6 +212,14 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                                 application,
                               ]..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
                             });
+
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to delete. Please try again.'),
+                                ),
+                              );
                           }
                         },
                       );
