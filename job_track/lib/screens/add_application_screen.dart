@@ -244,6 +244,7 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
         ..showSnackBar(
           const SnackBar(content: Text('Follow-up date is in the past')),
         );
+      return;
     }
 
     setState(() => _isSaving = true);
