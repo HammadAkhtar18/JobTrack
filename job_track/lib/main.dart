@@ -81,7 +81,7 @@ void _recoverToFatalError(
       navigatorKey: navigatorKey,
       home: FatalErrorScreen(
         message: message,
-        onRetry: main,
+        onRetry: () => main(),
       ),
     ),
   );
@@ -146,8 +146,9 @@ class MyApp extends StatelessWidget {
           if (args is JobApplication) {
             return ApplicationDetailScreen(application: args);
           }
-          return const FatalErrorScreen(
+          return FatalErrorScreen(
             message: 'Invalid navigation arguments.',
+            onRetry: () => main(),
           );
         },
       },
@@ -161,8 +162,9 @@ class MyApp extends StatelessWidget {
               if (args is JobApplication) {
                 return AddApplicationScreen(application: args);
               }
-              return const FatalErrorScreen(
+              return FatalErrorScreen(
                 message: 'Invalid navigation arguments.',
+                onRetry: () => main(),
               );
             }(),
           '/applications' => const ApplicationsListScreen(),
@@ -176,7 +178,7 @@ class MyApp extends StatelessWidget {
                 message: message is String
                     ? message
                     : 'An unrecoverable error occurred.',
-                onRetry: main,
+                onRetry: () => main(),
               );
             }(),
           _ => const SplashScreen(),
