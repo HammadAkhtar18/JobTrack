@@ -1,7 +1,7 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:job_track/models/job_application.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   NotificationService._();
@@ -10,6 +10,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  static const String _notificationIdMapKey = 'notification_id_map';
+  static const String _nextNotificationIdKey = 'next_notification_id';
 
   Future<void> initialize() async {
     const androidSettings = AndroidInitializationSettings(
@@ -54,8 +56,10 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
+    final notificationId = await _getOrCreateNotificationId(app.id);
+
     await _notifications.schedule(
-      _notificationIdFor(app.id),
+      notificationId,
       'Follow up with ${app.companyName}',
       "Don't forget to follow up on your ${app.jobTitle} application",
       scheduledAt,
@@ -65,7 +69,10 @@ class NotificationService {
   }
 
   Future<void> cancelReminder(String id) async {
-    await _notifications.cancel(_notificationIdFor(id));
+    final notificationId = await _getNotificationId(id);
+    if (notificationId != null) {
+      await _notifications.cancel(notificationId);
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -81,7 +88,7 @@ class NotificationService {
         >()
         ?.requestPermissions(alert: true, badge: true, sound: true);
 
-    if (Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       await _notifications
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
@@ -90,7 +97,53 @@ class NotificationService {
     }
   }
 
-  int _notificationIdFor(String id) {
-    return id.hashCode & 0x7fffffff;
+  Future<int?> _getNotificationId(String applicationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
+
+    for (final entry in notificationIdMap) {
+      final parts = entry.split(':');
+      if (parts.length != 2) {
+        continue;
+      }
+      if (parts[0] == applicationId) {
+        return int.tryParse(parts[1]);
+      }
+    }
+
+    return null;
+  }
+
+  Future<int> _getOrCreateNotificationId(String applicationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
+    final map = <String, int>{};
+
+    for (final entry in notificationIdMap) {
+      final parts = entry.split(':');
+      if (parts.length != 2) {
+        continue;
+      }
+      final parsedId = int.tryParse(parts[1]);
+      if (parsedId != null) {
+        map[parts[0]] = parsedId;
+      }
+    }
+
+    final existingId = map[applicationId];
+    if (existingId != null) {
+      return existingId;
+    }
+
+    final nextId = prefs.getInt(_nextNotificationIdKey) ?? 1;
+    map[applicationId] = nextId;
+
+    final serializedMap = map.entries
+        .map((entry) => '${entry.key}:${entry.value}')
+        .toList();
+    await prefs.setStringList(_notificationIdMapKey, serializedMap);
+    await prefs.setInt(_nextNotificationIdKey, nextId + 1);
+
+    return nextId;
   }
 }
