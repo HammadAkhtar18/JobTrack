@@ -203,6 +203,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
       }
 
+      if (parsedApplications.isEmpty && applicationsRaw.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No valid records found. Import aborted. Existing data preserved.',
+            ),
+          ),
+        );
+        return;
+      }
+
       await ref
           .read(applicationsProvider.notifier)
           .replaceAllApplications(parsedApplications);
