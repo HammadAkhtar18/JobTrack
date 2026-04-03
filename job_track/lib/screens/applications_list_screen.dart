@@ -153,7 +153,7 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                         application: application,
                         onTap: () {
                           Navigator.of(context).pushNamed(
-                            '/add-application',
+                            '/application-detail',
                             arguments: application,
                           );
                         },
