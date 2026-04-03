@@ -107,17 +107,30 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: const SplashScreen(),
       routes: {
-        '/application-detail': (context) => ApplicationDetailScreen(
-              application: ModalRoute.of(context)!.settings.arguments as JobApplication,
-            ),
+        '/application-detail': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is JobApplication) {
+            return ApplicationDetailScreen(application: args);
+          }
+          return const FatalErrorScreen(
+            message: 'Invalid navigation arguments.',
+          );
+        },
       },
       onGenerateRoute: (settings) {
         final page = switch (settings.name) {
-          '/add-application' => AddApplicationScreen(
-              application: settings.arguments is JobApplication
-                  ? settings.arguments as JobApplication
-                  : null,
-            ),
+          '/add-application' => () {
+              final args = settings.arguments;
+              if (args == null) {
+                return const AddApplicationScreen();
+              }
+              if (args is JobApplication) {
+                return AddApplicationScreen(application: args);
+              }
+              return const FatalErrorScreen(
+                message: 'Invalid navigation arguments.',
+              );
+            }(),
           '/applications' => const ApplicationsListScreen(),
           '/dashboard' => const DashboardScreen(),
           '/settings' => const SettingsScreen(),
