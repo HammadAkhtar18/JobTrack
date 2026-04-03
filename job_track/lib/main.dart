@@ -1,25 +1,64 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/screens/add_application_screen.dart';
 import 'package:job_track/screens/applications_list_screen.dart';
 import 'package:job_track/screens/dashboard_screen.dart';
+import 'package:job_track/screens/fatal_error_screen.dart';
 import 'package:job_track/screens/settings_screen.dart';
 import 'package:job_track/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await HiveFlutter.init();
-  Hive.registerAdapter(JobApplicationAdapter());
-  await Hive.openBox<JobApplication>('applications');
-  await NotificationService.instance.initialize();
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
   };
 
-  runApp(const ProviderScope(child: MyApp()));
+  await runZonedGuarded<Future<void>>(
+    () async {
+      try {
+        await HiveFlutter.init();
+        Hive.registerAdapter(JobApplicationAdapter());
+        await Hive.openBox<JobApplication>('applications');
+        await NotificationService.instance.initialize();
+        _runApp(const MyApp());
+      } catch (error, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('App initialization failed: $error');
+          debugPrint('$stackTrace');
+        }
+        _runApp(
+          MaterialApp(
+            home: FatalErrorScreen(
+              message: error.toString(),
+              onRetry: () {
+                main();
+              },
+            ),
+          ),
+        );
+      }
+    },
+    (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Uncaught async error: $error');
+        debugPrint('$stackTrace');
+      }
+    },
+  );
+}
+
+void _runApp(Widget home) {
+  runApp(
+    ProviderScope(
+      child: home,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
