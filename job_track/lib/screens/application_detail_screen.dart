@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
 import 'package:job_track/screens/add_application_screen.dart';
+import 'package:job_track/services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ApplicationDetailScreen extends ConsumerWidget {
@@ -55,7 +55,7 @@ class ApplicationDetailScreen extends ConsumerWidget {
             _StatusTimeline(currentStatus: application.status),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => _setReminder(context, application),
+              onPressed: () => _setReminder(context, ref, application),
               icon: const Icon(Icons.alarm_add_rounded),
               label: const Text('Set Reminder'),
             ),
@@ -72,7 +72,11 @@ class ApplicationDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _setReminder(BuildContext context, JobApplication application) async {
+  Future<void> _setReminder(
+    BuildContext context,
+    WidgetRef ref,
+    JobApplication application,
+  ) async {
     try {
       final followUpDate = application.followUpDate;
       if (followUpDate == null) {
@@ -103,14 +107,9 @@ class ApplicationDetailScreen extends ConsumerWidget {
         }
       }
 
-      await _NotificationsService.instance.initialize();
-
-      await _NotificationsService.instance.scheduleFollowUpReminder(
-        id: application.id.hashCode,
-        companyName: application.companyName,
-        jobTitle: application.jobTitle,
-        when: followUpDate,
-      );
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.initialize();
+      await notificationService.scheduleFollowUpReminder(application);
 
       if (!context.mounted) {
         return;
@@ -349,56 +348,5 @@ class _StatusTimeline extends StatelessWidget {
     }
 
     return text[0].toUpperCase() + text.substring(1);
-  }
-}
-
-class _NotificationsService {
-  _NotificationsService._();
-
-  static final _NotificationsService instance = _NotificationsService._();
-
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
-  bool _initialized = false;
-
-  Future<void> initialize() async {
-    if (_initialized) {
-      return;
-    }
-
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iOS = DarwinInitializationSettings();
-
-    await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: iOS),
-    );
-
-    _initialized = true;
-  }
-
-  Future<void> scheduleFollowUpReminder({
-    required int id,
-    required String companyName,
-    required String jobTitle,
-    required DateTime when,
-  }) async {
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'follow_up_reminders',
-        'Follow-up reminders',
-        channelDescription: 'Reminders for job application follow-up dates.',
-        importance: Importance.max,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(),
-    );
-
-    await _plugin.schedule(
-      id,
-      'Follow up with $companyName',
-      'Check in about your $jobTitle application.',
-      when,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
   }
 }
