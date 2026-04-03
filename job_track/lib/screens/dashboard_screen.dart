@@ -16,6 +16,13 @@ class DashboardScreen extends ConsumerWidget {
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pushNamed('/settings'),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
