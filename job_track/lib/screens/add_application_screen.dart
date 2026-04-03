@@ -4,7 +4,7 @@ import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
 import 'package:uuid/uuid.dart';
 
-class AddApplicationScreen extends ConsumerWidget {
+class AddApplicationScreen extends ConsumerStatefulWidget {
   const AddApplicationScreen({
     super.key,
     this.application,
@@ -13,9 +13,16 @@ class AddApplicationScreen extends ConsumerWidget {
   final JobApplication? application;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AddApplicationScreen> createState() => _AddApplicationScreenState();
+}
+
+class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
+  bool _isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
     final editingApplication =
-        application ?? ModalRoute.of(context)?.settings.arguments as JobApplication?;
+        widget.application ?? ModalRoute.of(context)?.settings.arguments as JobApplication?;
 
     return Scaffold(
       appBar: AppBar(
@@ -35,9 +42,17 @@ class AddApplicationScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () => _saveApplication(context, ref, editingApplication),
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Save'),
+                onPressed: _isSaving
+                    ? null
+                    : () => _saveApplication(context, ref, editingApplication),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: Text(_isSaving ? 'Saving...' : 'Save'),
               ),
             ],
           ),
@@ -51,6 +66,7 @@ class AddApplicationScreen extends ConsumerWidget {
     WidgetRef ref,
     JobApplication? editingApplication,
   ) async {
+    setState(() => _isSaving = true);
     final notifier = ref.read(applicationsProvider.notifier);
 
     try {
@@ -83,6 +99,10 @@ class AddApplicationScreen extends ConsumerWidget {
         ..showSnackBar(
           const SnackBar(content: Text('Failed to save. Please try again.')),
         );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 }
