@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -72,51 +73,69 @@ class ApplicationDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _setReminder(BuildContext context, JobApplication application) async {
-    final followUpDate = application.followUpDate;
-    if (followUpDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a follow-up date to schedule a reminder.')),
-      );
-      return;
-    }
-
-    if (!followUpDate.isAfter(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Follow-up date must be in the future.')),
-      );
-      return;
-    }
-
-    if (Platform.isAndroid) {
-      final status = await Permission.notification.request();
-      if (!status.isGranted) {
-        if (!context.mounted) {
-          return;
-        }
-
+    try {
+      final followUpDate = application.followUpDate;
+      if (followUpDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification permission denied')),
+          const SnackBar(content: Text('Add a follow-up date to schedule a reminder.')),
         );
         return;
       }
+
+      if (!followUpDate.isAfter(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Follow-up date must be in the future.')),
+        );
+        return;
+      }
+
+      if (Platform.isAndroid) {
+        final status = await Permission.notification.request();
+        if (!status.isGranted) {
+          if (!context.mounted) {
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Notification permission denied')),
+          );
+          return;
+        }
+      }
+
+      await _NotificationsService.instance.initialize();
+
+      await _NotificationsService.instance.scheduleFollowUpReminder(
+        id: application.id.hashCode,
+        companyName: application.companyName,
+        jobTitle: application.jobTitle,
+        when: followUpDate,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reminder set for ${DateFormat.yMMMd().add_jm().format(followUpDate)}')),
+      );
+    } on PlatformException {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to set reminder. Please try again.')),
+      );
+    } on Exception {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to set reminder. Please try again.')),
+      );
     }
-
-    await _NotificationsService.instance.initialize();
-
-    await _NotificationsService.instance.scheduleFollowUpReminder(
-      id: application.id.hashCode,
-      companyName: application.companyName,
-      jobTitle: application.jobTitle,
-      when: followUpDate,
-    );
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder set for ${DateFormat.yMMMd().add_jm().format(followUpDate)}')),
-    );
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -145,16 +164,26 @@ class ApplicationDetailScreen extends ConsumerWidget {
       return;
     }
 
-    await ref.read(applicationsProvider.notifier).deleteApplication(application.id);
+    try {
+      await ref.read(applicationsProvider.notifier).deleteApplication(application.id);
 
-    if (!context.mounted) {
-      return;
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Application deleted.')),
+      );
+    } on Exception {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete application.')),
+      );
     }
-
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Application deleted.')),
-    );
   }
 }
 
