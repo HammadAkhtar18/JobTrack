@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:job_track/models/job_application.dart';
@@ -9,17 +10,20 @@ final applicationsProvider =
 });
 
 class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>>> {
-  ApplicationsNotifier(this._applicationsBox) : super(const AsyncValue.loading()) {
+  ApplicationsNotifier(this._applicationsBox)
+      : _boxListenable = _applicationsBox.listenable(),
+        super(const AsyncValue.loading()) {
     _loadInitialState();
   }
 
   final Box<JobApplication> _applicationsBox;
+  final ValueListenable<Box<JobApplication>> _boxListenable;
   bool _isListening = false;
 
   void _loadInitialState() {
     try {
       state = AsyncValue.data(_applicationsBox.values.toList());
-      _applicationsBox.listenable().addListener(_syncState);
+      _boxListenable.addListener(_syncState);
       _isListening = true;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -131,7 +135,7 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   @override
   void dispose() {
     if (_isListening) {
-      _applicationsBox.listenable().removeListener(_syncState);
+      _boxListenable.removeListener(_syncState);
     }
     super.dispose();
   }
