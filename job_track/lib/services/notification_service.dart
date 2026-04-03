@@ -69,13 +69,31 @@ class NotificationService {
 
     final notificationId = await _getOrCreateNotificationId(app.id);
 
+    final androidPlugin = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    var androidScheduleMode = AndroidScheduleMode.inexact;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      final canScheduleExact =
+          await androidPlugin?.canScheduleExactNotifications() ?? false;
+      if (canScheduleExact) {
+        androidScheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
+      } else {
+        debugPrint(
+          'Exact alarms are not permitted. Falling back to inexact schedule mode.',
+        );
+      }
+    }
+
     await _notifications.schedule(
       notificationId,
       'Follow up with ${app.companyName}',
       "Don't forget to follow up on your ${app.jobTitle} application",
       scheduledAt,
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: androidScheduleMode,
     );
   }
 
