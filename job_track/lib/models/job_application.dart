@@ -78,7 +78,37 @@ class JobApplication {
           : salaryExpectation as String?,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'companyName': companyName,
+      'jobTitle': jobTitle,
+      'jobType': jobType,
+      'appliedDate': appliedDate.toIso8601String(),
+      'status': status,
+      'applicationUrl': applicationUrl,
+      'notes': notes,
+      'followUpDate': followUpDate?.toIso8601String(),
+      'salaryExpectation': salaryExpectation,
+    };
+  }
+
+  factory JobApplication.fromJson(Map<String, dynamic> json) {
+    return JobApplication(
+      id: json['id'] as String,
+      companyName: json['companyName'] as String,
+      jobTitle: json['jobTitle'] as String,
+      jobType: json['jobType'] as String,
+      appliedDate: DateTime.parse(json['appliedDate'] as String),
+      status: json['status'] as String,
+      applicationUrl: json['applicationUrl'] as String?,
+      notes: json['notes'] as String?,
+      followUpDate: (json['followUpDate'] as String?) == null
+          ? null
+          : DateTime.parse(json['followUpDate'] as String),
+      salaryExpectation: json['salaryExpectation'] as String?,
+    );
+  }
 }
-
-
 const Object _unset = Object();

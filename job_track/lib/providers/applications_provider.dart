@@ -95,6 +95,31 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
     }
   }
 
+  Future<void> clearAllApplications() async {
+    try {
+      await _applicationsBox.clear();
+      _syncState();
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> replaceAllApplications(List<JobApplication> applications) async {
+    try {
+      await _applicationsBox.clear();
+      if (applications.isNotEmpty) {
+        await _applicationsBox.putAll({
+          for (final application in applications) application.id: application,
+        });
+      }
+      _syncState();
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
   void _syncState() {
     try {
       state = AsyncValue.data(_applicationsBox.values.toList());

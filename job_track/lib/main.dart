@@ -5,6 +5,7 @@ import 'package:job_track/models/job_application.dart';
 import 'package:job_track/screens/add_application_screen.dart';
 import 'package:job_track/screens/applications_list_screen.dart';
 import 'package:job_track/screens/dashboard_screen.dart';
+import 'package:job_track/screens/settings_screen.dart';
 import 'package:job_track/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -71,6 +72,7 @@ class MyApp extends StatelessWidget {
             ),
           '/applications' => const ApplicationsListScreen(),
           '/dashboard' => const DashboardScreen(),
+          '/settings' => const SettingsScreen(),
           '/app-shell' => const _AppShell(),
           '/onboarding' => const OnboardingScreen(),
           _ => const SplashScreen(),
