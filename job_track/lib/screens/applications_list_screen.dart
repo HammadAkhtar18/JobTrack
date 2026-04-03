@@ -123,7 +123,7 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
           const SizedBox(height: 8),
           Expanded(
             child: filteredApplications.isEmpty
-                ? const Center(child: Text('No applications found.'))
+                ? const _ApplicationsEmptyState()
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     itemCount: filteredApplications.length,
@@ -222,6 +222,66 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
       _ when normalized.endsWith('s') => normalized.substring(0, normalized.length - 1),
       _ => normalized,
     };
+  }
+}
+
+class _ApplicationsEmptyState extends StatelessWidget {
+  const _ApplicationsEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 44,
+                  backgroundColor: colorScheme.primaryContainer,
+                ),
+                Icon(
+                  Icons.description_outlined,
+                  size: 38,
+                  color: colorScheme.primary,
+                ),
+                Positioned(
+                  right: 18,
+                  bottom: 8,
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: colorScheme.tertiaryContainer,
+                    child: Icon(
+                      Icons.search_off_rounded,
+                      size: 16,
+                      color: colorScheme.onTertiaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No applications found',
+              style: textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try changing filters, updating your search, or add a new application from the Dashboard tab.',
+              style: textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
