@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ApplicationsListScreen extends ConsumerStatefulWidget {
   const ApplicationsListScreen({super.key});
@@ -77,6 +80,13 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Applications'),
+        actions: [
+          IconButton(
+            onPressed: _exportApplications,
+            icon: const Icon(Icons.file_upload_outlined),
+            tooltip: 'Export CSV',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -222,6 +232,86 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
       _ when normalized.endsWith('s') => normalized.substring(0, normalized.length - 1),
       _ => normalized,
     };
+  }
+
+  Future<void> _exportApplications() async {
+    final allApplications = ref.read(applicationsProvider.notifier).getAll()
+      ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+
+    if (allApplications.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('No applications to export.')),
+        );
+      return;
+    }
+
+    final csvContent = _buildCsv(allApplications);
+    final csvBytes = utf8.encode(csvContent);
+
+    try {
+      await Share.shareXFiles(
+        [
+          XFile.fromData(
+            csvBytes,
+            mimeType: 'text/csv',
+            name: 'job_applications.csv',
+          ),
+        ],
+        fileNameOverrides: ['job_applications.csv'],
+        text: 'Job applications export',
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Could not export applications.')),
+        );
+    }
+  }
+
+  String _buildCsv(List<JobApplication> applications) {
+    const headers = <String>[
+      'Company',
+      'Title',
+      'Type',
+      'Status',
+      'Applied Date',
+      'Follow-up Date',
+      'Notes',
+    ];
+
+    final buffer = StringBuffer('${headers.join(',')}\n');
+
+    for (final application in applications) {
+      final row = <String>[
+        application.companyName,
+        application.jobTitle,
+        application.jobType,
+        application.status,
+        DateFormat('yyyy-MM-dd').format(application.appliedDate),
+        application.followUpDate == null
+            ? ''
+            : DateFormat('yyyy-MM-dd').format(application.followUpDate!),
+        application.notes ?? '',
+      ].map(_escapeCsvValue).join(',');
+
+      buffer.writeln(row);
+    }
+
+    return buffer.toString();
+  }
+
+  String _escapeCsvValue(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
   }
 }
 
