@@ -9,12 +9,28 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 });
 
 class NotificationService {
-  NotificationService._();
+  NotificationService._({
+    FlutterLocalNotificationsPlugin? notifications,
+    Future<SharedPreferences> Function()? sharedPreferencesProvider,
+  })  : _notifications = notifications ?? FlutterLocalNotificationsPlugin(),
+        _sharedPreferencesProvider =
+            sharedPreferencesProvider ?? SharedPreferences.getInstance;
 
   static final NotificationService instance = NotificationService._();
 
-  final FlutterLocalNotificationsPlugin _notifications =
-      FlutterLocalNotificationsPlugin();
+  @visibleForTesting
+  factory NotificationService.test({
+    FlutterLocalNotificationsPlugin? notifications,
+    Future<SharedPreferences> Function()? sharedPreferencesProvider,
+  }) {
+    return NotificationService._(
+      notifications: notifications,
+      sharedPreferencesProvider: sharedPreferencesProvider,
+    );
+  }
+
+  final FlutterLocalNotificationsPlugin _notifications;
+  final Future<SharedPreferences> Function() _sharedPreferencesProvider;
   bool _initialized = false;
   static const String _notificationIdMapKey = 'notification_id_map';
   static const String _nextNotificationIdKey = 'next_notification_id';
@@ -127,7 +143,7 @@ class NotificationService {
   }
 
   Future<int?> _getNotificationId(String applicationId) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPreferencesProvider();
     final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
 
     for (final entry in notificationIdMap) {
@@ -144,7 +160,7 @@ class NotificationService {
   }
 
   Future<int> _getOrCreateNotificationId(String applicationId) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPreferencesProvider();
     final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
     final map = <String, int>{};
 
@@ -174,5 +190,15 @@ class NotificationService {
     await prefs.setInt(_nextNotificationIdKey, nextId + 1);
 
     return nextId;
+  }
+
+  @visibleForTesting
+  Future<int> getOrCreateNotificationIdForTest(String applicationId) {
+    return _getOrCreateNotificationId(applicationId);
+  }
+
+  @visibleForTesting
+  Future<void> requestPermissionsForTest() {
+    return _requestPermissions();
   }
 }
