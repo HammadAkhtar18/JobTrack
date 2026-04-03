@@ -14,10 +14,17 @@ import 'package:job_track/screens/settings_screen.dart';
 import 'package:job_track/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
+    _recoverToFatalError(
+      details.exceptionAsString(),
+      stackTrace: details.stack,
+      logPrefix: 'Flutter framework error',
+    );
   };
 
   await runZonedGuarded<Future<void>>(
@@ -29,28 +36,54 @@ Future<void> main() async {
         await NotificationService.instance.initialize();
         _runApp(const MyApp());
       } catch (error, stackTrace) {
-        if (kDebugMode) {
-          debugPrint('App initialization failed: $error');
-          debugPrint('$stackTrace');
-        }
-        _runApp(
-          MaterialApp(
-            home: FatalErrorScreen(
-              message: error.toString(),
-              onRetry: () {
-                main();
-              },
-            ),
-          ),
+        _recoverToFatalError(
+          error.toString(),
+          stackTrace: stackTrace,
+          logPrefix: 'App initialization failed',
         );
       }
     },
     (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('Uncaught async error: $error');
-        debugPrint('$stackTrace');
-      }
+      _recoverToFatalError(
+        error.toString(),
+        stackTrace: stackTrace,
+        logPrefix: 'Uncaught async error',
+      );
     },
+  );
+}
+
+
+void _recoverToFatalError(
+  String message, {
+  StackTrace? stackTrace,
+  required String logPrefix,
+}) {
+  if (kDebugMode) {
+    debugPrint('$logPrefix: $message');
+    if (stackTrace != null) {
+      debugPrint('$stackTrace');
+    }
+  }
+
+  final navState = navigatorKey.currentState;
+  if (navState != null) {
+    navState.pushNamedAndRemoveUntil(
+      '/fatal-error',
+      (route) => false,
+      arguments: message,
+    );
+    return;
+  }
+
+  _runApp(
+    MaterialApp(
+      navigatorKey: navigatorKey,
+      home: FatalErrorScreen(
+        message: message,
+        onRetry: main,
+      ),
+    ),
   );
 }
 
@@ -74,6 +107,7 @@ class MyApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Job Track',
       theme: baseTheme.copyWith(
         textTheme: baseTheme.textTheme.copyWith(
@@ -136,6 +170,15 @@ class MyApp extends StatelessWidget {
           '/settings' => const SettingsScreen(),
           '/app-shell' => const _AppShell(),
           '/onboarding' => const OnboardingScreen(),
+          '/fatal-error' => () {
+              final message = settings.arguments;
+              return FatalErrorScreen(
+                message: message is String
+                    ? message
+                    : 'An unrecoverable error occurred.',
+                onRetry: main,
+              );
+            }(),
           _ => const SplashScreen(),
         };
 
@@ -180,17 +223,25 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await Future<void>.delayed(const Duration(milliseconds: 1500));
-    final prefs = await SharedPreferences.getInstance();
-    final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacementNamed(
+        onboardingComplete ? '/app-shell' : '/onboarding',
+      );
+    } catch (error, stackTrace) {
+      _recoverToFatalError(
+        error.toString(),
+        stackTrace: stackTrace,
+        logPrefix: 'Bootstrap failed',
+      );
     }
-
-    Navigator.of(context).pushReplacementNamed(
-      onboardingComplete ? '/app-shell' : '/onboarding',
-    );
   }
 
   @override
