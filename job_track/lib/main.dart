@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/screens/add_application_screen.dart';
+import 'package:job_track/screens/application_detail_screen.dart';
 import 'package:job_track/screens/applications_list_screen.dart';
 import 'package:job_track/screens/dashboard_screen.dart';
 import 'package:job_track/screens/fatal_error_screen.dart';
@@ -105,6 +106,11 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: ThemeMode.system,
       home: const SplashScreen(),
+      routes: {
+        '/application-detail': (context) => ApplicationDetailScreen(
+              application: ModalRoute.of(context)!.settings.arguments as JobApplication,
+            ),
+      },
       onGenerateRoute: (settings) {
         final page = switch (settings.name) {
           '/add-application' => AddApplicationScreen(
