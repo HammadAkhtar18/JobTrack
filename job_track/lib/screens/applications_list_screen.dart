@@ -59,7 +59,7 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
 
     final providerApplications = applicationsAsync.valueOrNull ?? <JobApplication>[];
 
-    if (!_initializedFromProvider) {
+    if (applicationsAsync.hasValue && !_initializedFromProvider) {
       _localApplications = List<JobApplication>.from(providerApplications);
       _initializedFromProvider = true;
     }
@@ -92,6 +92,8 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
       return matchesFilter && matchesSearch;
     }).toList()
       ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+
+    final isInitialLoading = applicationsAsync.isLoading && !_initializedFromProvider;
 
     return Scaffold(
       appBar: AppBar(
@@ -148,9 +150,11 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: filteredApplications.isEmpty
-                ? const _ApplicationsEmptyState()
-                : ListView.builder(
+            child: isInitialLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredApplications.isEmpty
+                    ? const _ApplicationsEmptyState()
+                    : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     itemCount: filteredApplications.length,
                     itemBuilder: (context, index) {
