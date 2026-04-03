@@ -189,19 +189,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
 
       final parsedApplications = <JobApplication>[];
+      var skippedRecords = 0;
       for (final item in applicationsRaw) {
         if (item is! Map<String, dynamic>) {
-          _showMessage('Backup contains invalid entries.');
-          return;
+          skippedRecords++;
+          continue;
         }
-        parsedApplications.add(JobApplication.fromJson(item));
+
+        try {
+          parsedApplications.add(JobApplication.fromJson(item));
+        } catch (_) {
+          skippedRecords++;
+        }
       }
 
       await ref
           .read(applicationsProvider.notifier)
           .replaceAllApplications(parsedApplications);
 
-      _showMessage('Backup restored successfully.');
+      _showMessage(
+        'Imported ${parsedApplications.length} applications. '
+        '$skippedRecords records skipped due to errors.',
+      );
     } catch (_) {
       _showMessage('Could not import backup file.');
     }
