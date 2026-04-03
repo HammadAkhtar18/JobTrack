@@ -158,6 +158,11 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                           );
                         },
                         onDelete: () async {
+                          final deletedApplication = application;
+                          final deletedIndex = _localApplications.indexWhere(
+                            (localApplication) => localApplication.id == deletedApplication.id,
+                          );
+
                           setState(() {
                             _pendingDeletionIds.add(application.id);
                             _localApplications.removeWhere(
@@ -187,10 +192,42 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                                   ),
                                   action: SnackBarAction(
                                     label: 'Undo',
-                                    onPressed: () {
-                                      ref
-                                          .read(applicationsProvider.notifier)
-                                          .addApplication(application);
+                                    onPressed: () async {
+                                      try {
+                                        await ref
+                                            .read(applicationsProvider.notifier)
+                                            .addApplication(deletedApplication);
+
+                                        if (!mounted) {
+                                          return;
+                                        }
+
+                                        setState(() {
+                                          final insertionIndex = deletedIndex < 0
+                                              ? _localApplications.length
+                                              : deletedIndex.clamp(
+                                                  0,
+                                                  _localApplications.length,
+                                                );
+                                          _localApplications.insert(
+                                            insertionIndex,
+                                            deletedApplication,
+                                          );
+                                        });
+                                      } catch (_) {
+                                        if (!mounted) {
+                                          return;
+                                        }
+                                        ScaffoldMessenger.of(context)
+                                          ..hideCurrentSnackBar()
+                                          ..showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Failed to restore application.',
+                                              ),
+                                            ),
+                                          );
+                                      }
                                     },
                                   ),
                                 ),
