@@ -15,6 +15,9 @@ Future<void> main() async {
   Hive.registerAdapter(JobApplicationAdapter());
   await Hive.openBox<JobApplication>('applications');
   await NotificationService.instance.initialize();
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+  };
 
   runApp(const ProviderScope(child: MyApp()));
 }

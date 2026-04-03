@@ -5,4 +5,12 @@ android {
         minSdkVersion 21
         targetSdkVersion 34
     }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
 }
