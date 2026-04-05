@@ -124,7 +124,11 @@ class ApplicationDetailScreen extends ConsumerWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reminder set for ${DateFormat.yMMMd().add_jm().format(followUpDate)}')),
+        SnackBar(
+          content: Text(
+            "Reminder set for ${DateFormat('MMM d, yyyy').format(scheduledTime)} at 9:00 AM",
+          ),
+        ),
       );
     } on PlatformException {
       if (!context.mounted) {
