@@ -31,16 +31,7 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   }
 
   List<JobApplication> getAll() {
-    final stateValue = state.valueOrNull;
-    if (stateValue != null) {
-      return stateValue;
-    }
-
-    try {
-      return _applicationsBox.values.toList();
-    } catch (_) {
-      return <JobApplication>[];
-    }
+    return List.unmodifiable(state.value ?? <JobApplication>[]);
   }
 
   List<JobApplication> getFilteredByStatus(String statusFilter) {
@@ -72,7 +63,6 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   Future<void> addApplication(JobApplication application) async {
     try {
       await _applicationsBox.put(application.id, application);
-      _syncState();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
@@ -82,7 +72,6 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   Future<void> updateApplication(JobApplication application) async {
     try {
       await _applicationsBox.put(application.id, application);
-      _syncState();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
@@ -92,7 +81,6 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   Future<void> deleteApplication(String applicationId) async {
     try {
       await _applicationsBox.delete(applicationId);
-      _syncState();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
@@ -102,7 +90,6 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
   Future<void> clearAllApplications() async {
     try {
       await _applicationsBox.clear();
-      _syncState();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
@@ -117,7 +104,6 @@ class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>
           for (final application in applications) application.id: application,
         });
       }
-      _syncState();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
