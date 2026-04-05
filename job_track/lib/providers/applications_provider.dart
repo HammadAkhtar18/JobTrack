@@ -9,6 +9,21 @@ final applicationsProvider =
   return ApplicationsNotifier(box);
 });
 
+final recentApplicationsProvider = Provider<List<JobApplication>>((ref) {
+  return ref.watch(
+    applicationsProvider.select((applicationsAsync) {
+      return applicationsAsync.maybeWhen(
+        data: (applications) {
+          final sorted = [...applications]
+            ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+          return List<JobApplication>.unmodifiable(sorted);
+        },
+        orElse: () => const <JobApplication>[],
+      );
+    }),
+  );
+});
+
 class ApplicationsNotifier extends StateNotifier<AsyncValue<List<JobApplication>>> {
   ApplicationsNotifier(this._applicationsBox)
       : _boxListenable = _applicationsBox.listenable(),

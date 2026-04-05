@@ -107,6 +107,20 @@ class MyApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
       useMaterial3: true,
     );
+    final darkBaseTheme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.dark,
+      ),
+      useMaterial3: true,
+    );
+    final darkTheme = darkBaseTheme.copyWith(
+      textTheme: darkBaseTheme.textTheme.copyWith(
+        bodySmall: darkBaseTheme.textTheme.bodySmall?.copyWith(fontSize: 13),
+        bodyMedium: darkBaseTheme.textTheme.bodyMedium?.copyWith(fontSize: 15),
+        bodyLarge: darkBaseTheme.textTheme.bodyLarge?.copyWith(fontSize: 17),
+      ),
+    );
 
     return MaterialApp(
       navigatorKey: navigatorKey,
@@ -118,28 +132,7 @@ class MyApp extends StatelessWidget {
           bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(fontSize: 17),
         ),
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seedColor,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ).copyWith(
-        textTheme: ThemeData(brightness: Brightness.dark).textTheme.copyWith(
-              bodySmall: ThemeData(brightness: Brightness.dark)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontSize: 13),
-              bodyMedium: ThemeData(brightness: Brightness.dark)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontSize: 15),
-              bodyLarge: ThemeData(brightness: Brightness.dark)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontSize: 17),
-            ),
-      ),
+      darkTheme: darkTheme,
       themeMode: ThemeMode.system,
       home: const SplashScreen(),
       routes: {
