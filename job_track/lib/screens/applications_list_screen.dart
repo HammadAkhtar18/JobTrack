@@ -203,14 +203,12 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                                         }
 
                                         setState(() {
-                                          final insertionIndex = deletedIndex < 0
-                                              ? _localApplications.length
-                                              : deletedIndex.clamp(
-                                                  0,
-                                                  _localApplications.length,
-                                                );
+                                          final safeIndex = deletedIndex.clamp(
+                                            0,
+                                            _localApplications.length,
+                                          ).toInt();
                                           _localApplications.insert(
-                                            insertionIndex,
+                                            safeIndex,
                                             deletedApplication,
                                           );
                                         });
