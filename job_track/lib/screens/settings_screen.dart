@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
+import 'package:job_track/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -217,9 +218,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return;
       }
 
-      await ref
-          .read(applicationsProvider.notifier)
-          .replaceAllApplications(parsedApplications);
+      final notifier = ref.read(applicationsProvider.notifier);
+      final notificationService = ref.read(notificationServiceProvider);
+      final existingApplications = notifier.getAll();
+      for (final application in existingApplications) {
+        try {
+          await notificationService.cancelReminder(application.id);
+        } catch (_) {
+          // Continue restoring even if a reminder cancellation fails.
+        }
+      }
+
+      await notifier.replaceAllApplications(parsedApplications);
 
       _showMessage(
         'Imported ${parsedApplications.length} applications. '
@@ -287,7 +297,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     try {
-      await ref.read(applicationsProvider.notifier).clearAllApplications();
+      final notifier = ref.read(applicationsProvider.notifier);
+      final notificationService = ref.read(notificationServiceProvider);
+      final allApplications = notifier.getAll();
+      for (final application in allApplications) {
+        try {
+          await notificationService.cancelReminder(application.id);
+        } catch (_) {
+          // Continue clearing data even if a reminder cancellation fails.
+        }
+      }
+
+      await notifier.clearAllApplications();
       _showMessage('All data cleared.');
     } catch (_) {
       _showMessage('Could not clear data.');
