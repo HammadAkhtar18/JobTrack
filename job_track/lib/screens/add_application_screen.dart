@@ -60,8 +60,9 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final editingApplication =
-        widget.application ?? ModalRoute.of(context)?.settings.arguments as JobApplication?;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final editing = args is JobApplication ? args : null;
+    final editingApplication = widget.application ?? editing;
 
     return Scaffold(
       appBar: AppBar(
@@ -313,6 +314,8 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
       lastDate: DateTime(now.year + 10),
     );
 
+    if (!mounted) return;
+
     if (picked != null) {
       setState(() => _appliedDate = picked);
     }
@@ -326,6 +329,8 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(now.year + 10),
     );
+
+    if (!mounted) return;
 
     if (picked != null) {
       setState(() => _followUpDate = picked);
