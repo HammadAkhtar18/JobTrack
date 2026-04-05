@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:job_track/models/job_application.dart';
 import 'package:job_track/providers/applications_provider.dart';
+import 'package:job_track/services/notification_service.dart';
 
 class ApplicationsListScreen extends ConsumerStatefulWidget {
   const ApplicationsListScreen({super.key});
@@ -171,6 +172,14 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                           });
 
                           try {
+                            try {
+                              await ref
+                                  .read(notificationServiceProvider)
+                                  .cancelReminder(application.id);
+                            } on Exception {
+                              // Keep delete flow successful even if reminder cancellation fails.
+                            }
+
                             await ref
                                 .read(applicationsProvider.notifier)
                                 .deleteApplication(application.id);
@@ -213,6 +222,14 @@ class _ApplicationsListScreenState extends ConsumerState<ApplicationsListScreen>
                                           );
                                         });
                                       } catch (_) {
+                                        try {
+                                          await ref
+                                              .read(notificationServiceProvider)
+                                              .cancelReminder(application.id);
+                                        } on Exception {
+                                          // Keep reminder cancelled on restore failure when possible.
+                                        }
+
                                         if (!mounted) {
                                           return;
                                         }
