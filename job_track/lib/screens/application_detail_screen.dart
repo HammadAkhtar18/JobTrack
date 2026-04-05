@@ -86,7 +86,15 @@ class ApplicationDetailScreen extends ConsumerWidget {
         return;
       }
 
-      if (!followUpDate.isAfter(DateTime.now())) {
+      final scheduledTime = DateTime(
+        followUpDate.year,
+        followUpDate.month,
+        followUpDate.day,
+        9,
+        0,
+      );
+
+      if (!scheduledTime.isAfter(DateTime.now())) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Follow-up date must be in the future.')),
         );
@@ -164,14 +172,14 @@ class ApplicationDetailScreen extends ConsumerWidget {
     }
 
     try {
+      final messenger = ScaffoldMessenger.of(context);
       await ref.read(applicationsProvider.notifier).deleteApplication(application.id);
 
-      if (!context.mounted) {
-        return;
+      if (context.mounted) {
+        Navigator.of(context).pop();
       }
 
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Application deleted.')),
       );
     } on Exception {
