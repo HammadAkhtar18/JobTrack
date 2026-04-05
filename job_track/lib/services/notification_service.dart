@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,36 +146,13 @@ class NotificationService {
 
   Future<int?> _getNotificationId(String applicationId) async {
     final prefs = await _sharedPreferencesProvider();
-    final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
-
-    for (final entry in notificationIdMap) {
-      final parts = entry.split(':');
-      if (parts.length != 2) {
-        continue;
-      }
-      if (parts[0] == applicationId) {
-        return int.tryParse(parts[1]);
-      }
-    }
-
-    return null;
+    final notificationIdMap = _readNotificationIdMap(prefs);
+    return notificationIdMap[applicationId];
   }
 
   Future<int> _getOrCreateNotificationId(String applicationId) async {
     final prefs = await _sharedPreferencesProvider();
-    final notificationIdMap = prefs.getStringList(_notificationIdMapKey) ?? [];
-    final map = <String, int>{};
-
-    for (final entry in notificationIdMap) {
-      final parts = entry.split(':');
-      if (parts.length != 2) {
-        continue;
-      }
-      final parsedId = int.tryParse(parts[1]);
-      if (parsedId != null) {
-        map[parts[0]] = parsedId;
-      }
-    }
+    final map = _readNotificationIdMap(prefs);
 
     final existingId = map[applicationId];
     if (existingId != null) {
@@ -183,13 +162,48 @@ class NotificationService {
     final nextId = prefs.getInt(_nextNotificationIdKey) ?? 1;
     map[applicationId] = nextId;
 
-    final serializedMap = map.entries
-        .map((entry) => '${entry.key}:${entry.value}')
-        .toList();
-    await prefs.setStringList(_notificationIdMapKey, serializedMap);
+    await _writeNotificationIdMap(prefs, map);
     await prefs.setInt(_nextNotificationIdKey, nextId + 1);
 
     return nextId;
+  }
+
+  Map<String, int> _readNotificationIdMap(SharedPreferences prefs) {
+    final encodedMap = prefs.getString(_notificationIdMapKey);
+    if (encodedMap == null || encodedMap.isEmpty) {
+      return <String, int>{};
+    }
+
+    try {
+      final decoded = jsonDecode(encodedMap);
+      if (decoded is! Map<String, dynamic>) {
+        return <String, int>{};
+      }
+
+      final map = <String, int>{};
+      decoded.forEach((key, value) {
+        if (value is int) {
+          map[key] = value;
+          return;
+        }
+        if (value is String) {
+          final parsedValue = int.tryParse(value);
+          if (parsedValue != null) {
+            map[key] = parsedValue;
+          }
+        }
+      });
+      return map;
+    } catch (_) {
+      return <String, int>{};
+    }
+  }
+
+  Future<void> _writeNotificationIdMap(
+    SharedPreferences prefs,
+    Map<String, int> map,
+  ) {
+    return prefs.setString(_notificationIdMapKey, jsonEncode(map));
   }
 
   @visibleForTesting

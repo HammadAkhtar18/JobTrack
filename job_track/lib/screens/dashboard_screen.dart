@@ -10,6 +10,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final applicationsAsync = ref.watch(applicationsProvider);
+    final recentApplications = ref.watch(recentApplicationsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -42,7 +43,11 @@ class DashboardScreen extends ConsumerWidget {
               );
             }
 
-            return _DashboardContent(applications: applications, countByStatus: _countByStatus);
+            return _DashboardContent(
+              applications: applications,
+              recentApplications: recentApplications,
+              countByStatus: _countByStatus,
+            );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => const _DashboardMessageState(
@@ -72,10 +77,12 @@ class DashboardScreen extends ConsumerWidget {
 class _DashboardContent extends StatelessWidget {
   const _DashboardContent({
     required this.applications,
+    required this.recentApplications,
     required this.countByStatus,
   });
 
   final List<JobApplication> applications;
+  final List<JobApplication> recentApplications;
   final int Function(List<JobApplication>, String) countByStatus;
 
   @override
@@ -91,9 +98,6 @@ class _DashboardContent extends StatelessWidget {
     final interviewCount = countByStatus(applications, 'interview');
     final offerCount = countByStatus(applications, 'offer');
     final rejectedCount = countByStatus(applications, 'rejected');
-
-    final recentApplications = [...applications]
-      ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
 
     return ListView(
       padding: const EdgeInsets.all(16),
