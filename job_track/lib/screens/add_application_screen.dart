@@ -18,7 +18,9 @@ class AddApplicationScreen extends ConsumerStatefulWidget {
 
 class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
   bool _isSaving = false;
+  bool _initialized = false;
   final _formKey = GlobalKey<FormState>();
+  JobApplication? _editingApplication;
 
   late final TextEditingController _companyNameController;
   late final TextEditingController _jobTitleController;
@@ -33,17 +35,37 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
   @override
   void initState() {
     super.initState();
-    final application = widget.application;
-    _companyNameController = TextEditingController(text: application?.companyName ?? '');
-    _jobTitleController = TextEditingController(text: application?.jobTitle ?? '');
-    _jobTypeController = TextEditingController(text: application?.jobType ?? 'Full-time');
-    _statusController = TextEditingController(text: application?.status ?? 'Applied');
-    _applicationUrlController = TextEditingController(text: application?.applicationUrl ?? '');
-    _notesController = TextEditingController(text: application?.notes ?? '');
+    _companyNameController = TextEditingController(text: '');
+    _jobTitleController = TextEditingController(text: '');
+    _jobTypeController = TextEditingController(text: 'Full-time');
+    _statusController = TextEditingController(text: 'Applied');
+    _applicationUrlController = TextEditingController(text: '');
+    _notesController = TextEditingController(text: '');
     _salaryExpectationController =
-        TextEditingController(text: application?.salaryExpectation ?? '');
-    _appliedDate = application?.appliedDate ?? DateTime.now();
-    _followUpDate = application?.followUpDate;
+        TextEditingController(text: '');
+    _appliedDate = DateTime.now();
+    _followUpDate = null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+
+      final constructorApplication = widget.application;
+      if (constructorApplication != null) {
+        _editingApplication = constructorApplication;
+        _prefillControllers(constructorApplication);
+        return;
+      }
+
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is JobApplication) {
+        _editingApplication = args;
+        _prefillControllers(args);
+      }
+    }
   }
 
   @override
@@ -60,13 +82,9 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    final editing = args is JobApplication ? args : null;
-    final editingApplication = widget.application ?? editing;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(editingApplication == null ? 'Add Application' : 'Edit Application'),
+        title: Text(_editingApplication == null ? 'Add Application' : 'Edit Application'),
       ),
       body: Center(
         child: Padding(
@@ -201,7 +219,7 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
                 FilledButton.icon(
                   onPressed: _isSaving
                       ? null
-                      : () => _saveApplication(context, ref, editingApplication),
+                      : () => _saveApplication(context, ref, _editingApplication),
                   icon: _isSaving
                       ? const SizedBox(
                           width: 18,
@@ -217,6 +235,18 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
         ),
       ),
     );
+  }
+
+  void _prefillControllers(JobApplication application) {
+    _companyNameController.text = application.companyName;
+    _jobTitleController.text = application.jobTitle;
+    _jobTypeController.text = application.jobType;
+    _statusController.text = application.status;
+    _applicationUrlController.text = application.applicationUrl ?? '';
+    _notesController.text = application.notes ?? '';
+    _salaryExpectationController.text = application.salaryExpectation ?? '';
+    _appliedDate = application.appliedDate;
+    _followUpDate = application.followUpDate;
   }
 
   Future<void> _saveApplication(
