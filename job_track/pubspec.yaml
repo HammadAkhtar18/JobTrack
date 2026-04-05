@@ -34,3 +34,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/audio/come_in.txt
+    - assets/audio/whos_there.txt
+    - assets/audio/stop_that_bro.txt
+    - assets/audio/not_now.txt
+    - assets/audio/seriously.txt
