@@ -175,6 +175,12 @@ class ApplicationDetailScreen extends ConsumerWidget {
       final messenger = ScaffoldMessenger.of(context);
       await ref.read(applicationsProvider.notifier).deleteApplication(application.id);
 
+      try {
+        await ref.read(notificationServiceProvider).cancelReminder(application.id);
+      } on Exception {
+        // Keep delete flow successful even if notification cancellation fails.
+      }
+
       if (context.mounted) {
         Navigator.of(context).pop();
       }
