@@ -234,7 +234,7 @@ class _DetailsCard extends StatelessWidget {
               label: 'Follow-up date',
               value: application.followUpDate == null
                   ? null
-                  : DateFormat.yMMMd().add_jm().format(application.followUpDate!),
+                  : DateFormat('MMM d, yyyy').format(application.followUpDate!),
             ),
             _DetailRow(icon: Icons.notes_rounded, label: 'Notes', value: application.notes),
           ],
