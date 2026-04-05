@@ -101,7 +101,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _exportJsonBackup() async {
-    final allApplications = ref.read(applicationsProvider.notifier).getAll()
+    final allApplications = [...ref.read(applicationsProvider.notifier).getAll()]
       ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
 
     final backupPayload = <String, dynamic>{
@@ -204,6 +204,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
 
       if (parsedApplications.isEmpty && applicationsRaw.isNotEmpty) {
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -228,7 +231,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _exportCsv() async {
-    final allApplications = ref.read(applicationsProvider.notifier).getAll()
+    final allApplications = [...ref.read(applicationsProvider.notifier).getAll()]
       ..sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
 
     if (allApplications.isEmpty) {
